@@ -45,8 +45,10 @@ type_schema_keys = required_schema_keys | optional_schema_keys
 
 
 def is_method_key(key, parameters):
-    return key.startswith('_') and key not in type_schema_keys and key not in [
-        f'_{parameter}' for parameter in parameters]
+    parameter_tags = [f'_{parameter}' for parameter in parameters]
+    return key.startswith('_') and\
+            key not in type_schema_keys and\
+            key not in parameter_tags
 
 def resolve_path(path):
     """
