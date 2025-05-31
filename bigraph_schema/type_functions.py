@@ -2921,3 +2921,51 @@ registry_types = {
         '_fold': fold_union,
         '_resolve': resolve_union,
         '_description': 'union of a set of possible types'}}
+
+
+TYPE_FUNCTION_KEYS = [
+    '_apply',
+    '_check',
+    '_fold',
+    '_divide',
+    '_react',
+    '_serialize',
+    '_deserialize',
+    '_slice',
+    '_bind',
+    '_merge']
+
+TYPE_SCHEMAS = {
+    'float': 'float'}
+
+SYMBOL_TYPES = ['enum']
+
+required_schema_keys = {'_default', '_apply', '_check', '_serialize', '_deserialize', '_fold'}
+
+optional_schema_keys = {'_type', '_value', '_description', '_type_parameters', '_inherit', '_divide'}
+
+type_schema_keys = required_schema_keys | optional_schema_keys
+
+
+def is_method_key(key, parameters):
+    parameter_tags = [f'_{parameter}' for parameter in parameters]
+    return key.startswith('_') and\
+            key not in type_schema_keys and\
+            key not in parameter_tags
+
+def resolve_path(path):
+    """
+    Given a path that includes '..' steps, resolve the path to a canonical form
+    """
+    resolve = []
+
+    for step in path:
+        if step == '..':
+            if len(resolve) == 0:
+                raise Exception(f'cannot go above the top in path: "{path}"')
+            else:
+                resolve = resolve[:-1]
+        else:
+            resolve.append(step)
+
+    return tuple(resolve)
