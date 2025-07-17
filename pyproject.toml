@@ -18,4 +18,9 @@ packages = [
     "bigraph_schema"
 ]
 
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+]
+
 
