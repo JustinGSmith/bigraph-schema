@@ -2153,17 +2153,22 @@ def test_enum_type(core):
         'planet',
         'enum[mercury,venus,earth,mars,jupiter,saturn,neptune]')
 
-    # this is equivalent to the above (TODO: test this)
-    # core.register('planet', {
-    #     '_type': 'enum',
-    #     '_type_parameters': ['0', '1', '2', '3', '4', '5', '6'],
-    #     '_0': 'mercury',
-    #     '_1': 'venus',
-    #     '_2': 'earth',
-    #     '_3': 'mars',
-    #     '_4': 'jupiter',
-    #     '_5': 'saturn',
-    #     '_6': 'neptune'})
+    # equivalent to above
+    core.register('also_planet', {
+         '_type': 'enum',
+         '_type_parameters': ['0', '1', '2', '3', '4', '5', '6'],
+         '_0': 'mercury',
+         '_1': 'venus',
+         '_2': 'earth',
+         '_3': 'mars',
+         '_4': 'jupiter',
+         '_5': 'saturn',
+         '_6': 'neptune'})
+
+    # TODO: is this a sufficient level of equivalence, or do we need
+    # to check that all 'planet' keys are present (currently they are not)
+    for k,v in core.find('also_planet').items():
+        assert v == core.find('planet')[k]
 
     assert core.default('planet') == 'mercury'
 
