@@ -807,7 +807,7 @@ def test_project(core):
                 'branch3': 22},
             'branch4': 44}}
 
-    # TODO: make sure apply does not mutate instance
+    original_instance = instance.copy()
     updated_instance = core.apply(
         schema,
         instance,
@@ -837,6 +837,7 @@ def test_project(core):
         updated_instance,
         inverted_update)
 
+    assert instance == original_instance
     assert modified_branch == {
         'a0': {
             'a0.0': 22,
