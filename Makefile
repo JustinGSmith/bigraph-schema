@@ -1,4 +1,7 @@
 DOCTEST_FILES=bigraph_schema/type_system.py
+
+PYTEST_FILE=bigraph_schema/tests.py
+
 PYTEST_FILE=bigraph_schema/tests.py
 
 tests: pytest doctest

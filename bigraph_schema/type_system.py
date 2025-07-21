@@ -160,7 +160,6 @@ class TypeSystem(Registry):
         return registry
 
 
-    # TODO: explain this method
     def register(self, key, schema, alternate_keys=tuple(), strict=True, update=False):
         """
         register the schema under the given key in the registry
