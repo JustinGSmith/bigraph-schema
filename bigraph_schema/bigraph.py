@@ -79,6 +79,52 @@ class JoinDict():
         self.left.update(other.left)
         self.right.update(other.right)
 
+class Port():
+    def __init__(self, label):
+        self.label = label
+
+class NodeMapping(JoinDict):
+    def __init__(self):
+        self.left_ports = set()
+        self.right_ports = set()
+        super(JoinDict, self).__init__()
+
+    def insert(self, left, right):
+        if isinstance(left, Port):
+            self.left_ports.add(left)
+        if isinstance(right, Port):
+            self.right_ports.add(right)
+        super(JoinDict, self).insert(left, right)
+
+    def remove_left(self, left):
+        super(JoinDict, self).remove_left(left)
+        try:
+            self.left_ports.remove(left)
+        except KeyError:
+            pass
+
+    def remove_right(self, right):
+        super(JoinDict, self).remove_right(right)
+        try:
+            self.right_ports.remove(right)
+        except KeyError:
+            pass
+
+    def delink(self, left, right):
+        super(JoinDict, self).delink(left, right)
+        try:
+            self.left_ports.remove(left)
+        except KeyError:
+            pass
+        try:
+            self.right_ports.remove(right)
+        except KeyError:
+            pass
+
+    def update(self, other):
+        super(JoinDict, self).update(self, other)
+        self.left_ports ^= other.left_ports
+        self.right_ports ^= other.right_ports
 
 class Link():
     def __init__(self, bigraph, **kwargs):
@@ -91,6 +137,7 @@ class Link():
 
         redex, reaction - used together to update bigraph
 
+        # TODO - soon to be Port rather than None
         inner, outer - many to many mappings from port name to (node_id or None)
 
         port_schemas - mapping from port name to schema
@@ -121,18 +168,18 @@ class Link():
 
         inner_ports = kwargs.get('inner', [])
         outer_ports = kwargs.get('outer', [])
-        self.inner = JoinDict()
-        self.outer = JoinDict()
+        self.inner = NodeMapping()
+        self.outer = NodeMapping()
         # mapping from port name to schema
         self.port_schemas = {}
         for name, schema, node_id in inner_ports:
             self.port_schemas[name] = schema
-            node_id = node_id or None
+            node_id = node_id or Port(name)
             self.inner.insert(name, node_id)
             bigraph.links_nodes.insert(self.id, node_id)
         for name, schema, node_id in outer_ports:
             self.port_schemas[name] = schema
-            node_id = node_id or None
+            node_id = node_id or Port(name)
             self.outer.insert(name, node_id)
             bigraph.links_nodes.insert(self.id, node_id)
         bigraph.links[self.id] = self
@@ -145,12 +192,12 @@ class Link():
         the outer interface of a link is the set of open righthand ports (out
         bound ports not connected to nodes)
         """
-        raw = self.outer.get_right(None)
+        raw = self.outer.ports
         result = {}
-        for name in raw:
-            result[name] = {'link_id': self.id,
-                            'name': name,
-                            'schema': self.port_schemas.get(name)}
+        for port in raw:
+            result[port.label] = {'link_id': self.id,
+                                  'port': port,
+                                  'schema': self.port_schemas.get(port.label)}
         return result
 
     def inner_face(self):
@@ -158,12 +205,12 @@ class Link():
         the inner interface of a link is the set of open lefthand ports (in
         bound ports not connected to nodes)
         """
-        raw = self.inner.get_right(None)
+        raw = self.inner.ports
         result = {}
-        for name in raw:
-            result[name] = {'link_id': self.id,
-                            'name': name,
-                            'schema': self.port_schemas.get(name)}
+        for port in raw:
+            result[port.label] = {'link_id': self.id,
+                                  'port': port,
+                                  'schema': self.port_schemas.get(port.label)}
         return result
 
     def process(self, bigraph):
@@ -176,7 +223,7 @@ class Link():
 
 class Places():
     def __init__(self):
-        self.places = JoinDict()
+        self.places = NodeMapping()
 
     def insert(self, pair):
         [outer, inner] = pair
@@ -188,25 +235,26 @@ class Places():
     def get_place(self, node_id):
         [parent] = self.places.get_right(node_id)
         children = self.places.get_left(node_id)
-        return {'node_id': node_id, 'outer': parent, 'inner': children}
+        return {'node_id': node_id,
+                'outer': parent,
+                'inner': children}
 
     def get_branches(self, node_id):
         return self.places.get_left(node_id)
 
     def get_roots(self):
-        return self.places.get_left(None)
+        return self.places.left_ports
 
     def get_leaves(self):
-        return self.places.get_right(None)
+        return self.places.right_ports
 
     def build_tree(self, root):
         """
         returns a tree of node_id down from root
         """
         branches = self.places.get_left(root)
-        # this case indicates a port
-        if branches == [None]:
-            return None
+        if isinstance(branches[0], Port)
+            return branches[0]
         result = {}
         for branch in branches:
             result[branch] = self.build_tree(branch)
@@ -258,6 +306,7 @@ class Bigraph():
                 f' places={pf(self.places)},\n' \
                 f' links={pf(self.links)})'
 
+    # TODO what is going on here?
     def outer_face(self):
         """
         the outer face is the set of links that join right to None
